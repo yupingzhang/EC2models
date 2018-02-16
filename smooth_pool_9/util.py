@@ -7,7 +7,7 @@ import operator
 from preprocess import load_batch, obj_loader
 
 
-FOLDER_SIZE = 1000
+FOLDER_SIZE = 100
 
 # coarse mesh holding points
 holdings = [1, 188]
@@ -45,7 +45,7 @@ def load_input_only(path_coarse, rest_file = None):
     # for x in range(1, FOLDER_SIZE + 1):
     for dirName, subdirList, fileList in os.walk(path_coarse):
         total = len(fileList)
-        for x in range(0, total):
+        for x in range(1, total + 1):
             file_name = str(x).zfill(5) + '_00.obj'
             coarse_file = path_coarse + '/' + file_name
             # get x_train input as coarse positions subtracting the rest positions
