@@ -39,8 +39,14 @@ def inference(input, batch_size, tri_num, vert_num, mtx, mtx_1, phase):
       output.
     """
     print("=============== Inference: Build the model =============== ")
-    print("input.shape:   ", input.shape)       #(?, 1292, 9)
-    input_tensor = tf.convert_to_tensor(tf.transpose(input, perm=[1, 0, 2]))    #(1292, batch_size, 9)
+    # print("input.shape:   ", input.shape)       #(?, 1292, 9)
+
+    # add noise
+    noise_tensor = tf.random_normal([1292, 9], seed=1234)   #(1292, 9)
+    input_add_noise = input + 0.001 * noise_tensor
+    
+    input_tensor = tf.convert_to_tensor(tf.transpose(input_add_noise, perm=[1, 0, 2]))    #(1292, batch_size, 9)
+    # input_tensor = tf.convert_to_tensor(tf.transpose(input, perm=[1, 0, 2]))    #(1292, batch_size, 9)
     input_tensor32 = tf.cast(input_tensor, tf.float32)
 
     # input_flat = tf.reshape(input_tensor32, [size_in, batch_size * int(input.shape[2])])    #(1292, -1)
@@ -53,12 +59,32 @@ def inference(input, batch_size, tri_num, vert_num, mtx, mtx_1, phase):
     mtx_tensor = tf.convert_to_tensor(mtx, dtype='float32', name='mtx_tensor')
     mtx_1_tensor = tf.transpose(tf.convert_to_tensor(mtx_1, dtype='float32', name='mtx_1_tensor'))
 
+    # (1292, batch_size, 9)
+    print("input_tensor32: ", input_tensor32)
     smooth1 = smooth_layer(input_tensor32, tri_num, "smooth1", None)
     pool1 = densepool_layer(smooth1, tri_num, "pool1", mtx_tensor, mtx_1_tensor, None)
-    # block1 = tf.contrib.layers.batch_norm(pool1, center=True, scale=True, is_training=phase, scope='bn') 
-    
-    output_tensor = tf.transpose(pool1, perm=[1, 0, 2])
-    
+    print(">>> pool1: ", pool1)
+
+    b1 = tf.transpose(pool1, perm=[1, 0, 2])
+    bn1 = tf.contrib.layers.batch_norm(b1, center=True, scale=True, is_training=phase, scope='bn1') 
+    block1 = tf.transpose(bn1, perm=[1, 0, 2])
+    print(">>> block1: ", block1)
+
+    smooth2 = smooth_layer(block1, tri_num, "smooth2", None)
+    pool2 = densepool_layer(smooth2, tri_num, "pool2", mtx_tensor, mtx_1_tensor, None)
+    print(">>> pool2: ", pool2)
+
+    b2 = tf.transpose(pool2, perm=[1, 0, 2])
+    bn2 = tf.contrib.layers.batch_norm(b2, center=True, scale=True, is_training=phase, scope='bn2') 
+    block2 = tf.transpose(bn2, perm=[1, 0, 2])
+    print(">>> block2: ", block2)
+
+    smooth3 = smooth_layer(block2, tri_num, "smooth1", None)
+    pool3 = densepool_layer(smooth3, tri_num, "pool1", mtx_tensor, mtx_1_tensor, None)
+    print(">>> pool3: ", pool3)
+
+    output_tensor = tf.transpose(pool3, perm=[1, 0, 2])
+
     # return tf.nn.relu(block1, 'relu')
     return output_tensor
 
@@ -126,7 +152,7 @@ def gamma(N, a, b, c):
 
 def loss(ground_truth, predictions):
   print("loss >>> ground_truth: ", ground_truth)
-  print("         predictions: ", predictions)  # Tensor("Shape:0", shape=(3,), dtype=int32)
+  print("         predictions: ", predictions)   
 
   with tf.name_scope("loss"):
     # loss = tf.losses.mean_squared_error(ground_truth, predictions, 
@@ -144,17 +170,5 @@ def loss(ground_truth, predictions):
   tf.summary.histogram('predictions', predictions)
 
   return loss_mse
-  
-  # predict = tf.transpose(predictions + res_pos_tensor, perm=[1, 0, 2])
-  # s = tf.shape(predict)[0]
-  # pred = tf.reshape(predict, [s, -1])
-  
-  # reg_term = tf.norm(tf.matmul(gQ, pred))
-  # tf.summary.scalar('reg_term', reg_term)
-  
-  # alpha = 0.00001
-  # loss_mse += alpha * reg_term
-
-  # return reg_term
 
 

@@ -82,7 +82,6 @@ def densepool_layer(input_tensor, tri_num, layer_name, mtx_tensor, mtx_1_tensor,
 			return preactivate
 
 
-
 # test: full connected layer
 # size_in:  M
 # size_out: N

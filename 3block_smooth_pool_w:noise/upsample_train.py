@@ -12,10 +12,9 @@ import util
 import preprocess
 from batch_conf import Dataset 
 
-# BATCH_SIZE = 50
-# BATCH_SIZE = 100
+
 BATCH_SIZE = 20
-FOLDER_SIZE = 1000
+FOLDER_SIZE = 100
 
 
 # inputs:  
@@ -213,7 +212,7 @@ def main():
         os.makedirs(logdir)
 
       sdir = coarseDir
-      rest_file = sdir + [f for f in os.listdir(sdir) if not f.startswith('.')][0] + "/00000_00.obj"
+      rest_file = sdir + [f for f in os.listdir(sdir) if not f.startswith('.')][0] + "/00001_00.obj"
       dim, mtx, mtx_1 = preprocess.meshmtx_wnb(rest_file)
       rest_pos = util.load_pos(rest_file)
 
