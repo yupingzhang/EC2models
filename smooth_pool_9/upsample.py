@@ -25,6 +25,8 @@ import numpy as np
 import tensorflow as tf
 import util
 from preprocess import load_batch 
+
+from layers import act
 from layers import smooth_layer
 from layers import densepool_layer
 
@@ -59,7 +61,7 @@ def inference(input, batch_size, tri_num, vert_num, mtx, mtx_1, phase):
     
     output_tensor = tf.transpose(pool1, perm=[1, 0, 2])
     
-    # return tf.nn.relu(block1, 'relu')
+    # return act(output_tensor)
     return output_tensor
 
 

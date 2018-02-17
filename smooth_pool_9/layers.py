@@ -12,6 +12,12 @@ import tensorflow as tf
 import numpy as np
 import util
 
+# activation function
+# act =  1 -  Sigmoid(|| x - 6 ||)  
+def act(x):
+	return (1 - tf.sigmoid(tf.abs(x - 6.0)))
+
+
 def weight_variable(shape):
 	"""Create a weight variable with appropriate initialization."""
 	initial = tf.truncated_normal(shape, stddev=0.1)

@@ -34,13 +34,13 @@ def load_weights(filename):
 # load the delta for x_pred
 # the orignal coarse mesh for adding to the prediction result
 ####################################################################
-def load_input_only(path_coarse, rest_file = None):
+def load_input_only(path_coarse, rest_pos):
     batch_delta_coarse = []
     batch_x_coarse = []
     
-    # load the rest mesh 
-    if rest_file:
-        rest_pos = load_pos(rest_file)
+    # # load the rest mesh 
+    # if rest_file:
+    #     rest_pos = load_pos(rest_file)
 
     # for x in range(1, FOLDER_SIZE + 1):
     for dirName, subdirList, fileList in os.walk(path_coarse):

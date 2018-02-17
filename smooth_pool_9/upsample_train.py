@@ -17,11 +17,26 @@ from batch_conf import Dataset
 BATCH_SIZE = 20
 FOLDER_SIZE = 100
 
-
-# inputs:  
-# x_train, y_train
-# logdir: log directory for tensorboard
-# predict, bool, predict flag
+##
+# inputs: 
+#
+# @param      x_train        coarse mesh - rest pos
+# @param      y_train        fine mesh - coarse mesh
+# @param      x_pred         prediction input, coarse mesh - rest pos
+# @param      x_coarse       prediction coarse mesh
+# @param      rest_file      The rest pos
+# @param      mtx            mtx: 1292*3, 700
+# @param      mtx_1          mtx_1: 
+# @param      epochs         The epochs
+# @param      learning_rate  The learning rate
+# @param      logdir         log directory for tensorboard
+# @param      out_dir        The out dir
+# @param      init_w         The initialize weight flag
+# @param      lr_decay_rate  The lr decay rate
+# @param      restore        The restore flag
+#
+# @return     { description_of_the_return_value }
+#
 def train_model(x_train, y_train, x_pred, x_coarse, rest_file, mtx, mtx_1, epochs, learning_rate, logdir, out_dir, init_w, lr_decay_rate, restore):
   """Train upsample for a number of steps."""
   tf.reset_default_graph()
@@ -119,10 +134,24 @@ def train_model(x_train, y_train, x_pred, x_coarse, rest_file, mtx, mtx_1, epoch
   print("Model saved in file: %s" % save_path)
   
 
-
-# predict
-# t: index (pred every x epoch and create a new folder for new prediction)
+##
+# predict t: index (pred every x epoch and create a new folder for new prediction)
 # x_coarse is the original vertex position, has to be the same dimension as y_mesh
+#
+# @param      x_pred    The x predicate
+# @param      x_coarse  The x coarse
+# @param      vert_num  The vertical number
+# @param      out_dir   The out dir
+# @param      indices   The indices
+# @param      faces     The faces
+# @param      t         { parameter_description }
+# @param      predicts  The predicts
+# @param      X         { parameter_description }
+# @param      phase     The phase (training or learning)
+# @param      sess      The sess
+#
+# @return     { description_of_the_return_value }
+#
 def pred(x_pred, x_coarse, vert_num, out_dir, indices, faces, t, predicts, X, phase, sess):
   pred_input = Dataset(x_pred)
   folder_size = x_pred.shape[0]
@@ -144,7 +173,6 @@ def pred(x_pred, x_coarse, vert_num, out_dir, indices, faces, t, predicts, X, ph
 
       obj_out = sdir + '{0:05d}'.format(i) + '.obj'
       util.tri2obj(y_mesh, vert_num, indices, faces, obj_out) 
-
 
 
 def main():
@@ -256,7 +284,7 @@ def main():
           total = len(subdirList)
           for subdir in subdirList:
               # print('Found directory: %s' % subdir)
-              x_p, x_c = util.load_input_only(inDir + subdir, rest_file)
+              x_p, x_c = util.load_input_only(inDir + subdir, rest_pos)
               if x_pred.size == 0:
                   x_pred = x_p
               else: 
