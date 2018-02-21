@@ -46,11 +46,12 @@ def inference(input, batch_size, tri_num, vert_num, mtx, mtx_1, phase, keep_prob
     # input_tensor32 = tf.cast(input_tensor, tf.float32)
 
     ## add noise
-    alpha = 0.1
+    alpha = 0.01
     noise_tensor = tf.random_normal([1292, 9], seed=1234)   #(1292, 9)
     input_add_noise = input + alpha * noise_tensor
     
     input_tensor = tf.convert_to_tensor(tf.transpose(input_add_noise, perm=[1, 0, 2]))    #(1292, batch_size, 9)
+    # input_tensor = tf.convert_to_tensor(tf.transpose(input, perm=[1, 0, 2]))    #(1292, batch_size, 9)
     input_tensor32 = tf.cast(input_tensor, tf.float32)
 
     # tf.summary.histogram('input_tensor', input_tensor32)
@@ -104,11 +105,16 @@ def training(learning_rate, loss, global_step, lr_decay_rate):
 
     ########### debug ###############################################
     W = [v for v in tf.trainable_variables() if v.name == "smooth1/weights/Variable:0"][0]
-    grad_W = tf.gradients(xs=[W], ys=loss)
-    gw = grad_W / tf.norm(grad_W)
-    # # gw = tf.reduce_mean(grad_W)
-    # # print("grad_W: ", grad_W)    # tensor (700, 187)
-    tf.summary.scalar('grad_W', tf.reduce_mean(grad_W))
+    # grad_W0 = tf.gradients(xs=W, ys=loss)[0]
+    # print("grad_W0: ", grad_W0)    # tensor (700, 187)
+    
+    grad_W = [grad for grad, var in grads_and_vars][0]
+    print("grad_W: ", grad_W) 
+
+    # grad_w_diff = grad_W0 - grad_W
+    # tf.summary.scalar('grad_w_diff', tf.reduce_mean(grad_w_diff))
+
+    gw = grad_W / W
     tf.summary.scalar('gw', tf.reduce_mean(gw))
 
     # grads_and_vars is a list of tuples (gradient, variable).  Do whatever you
@@ -147,7 +153,7 @@ def loss(ground_truth, predictions):
     loss_mse = tf.losses.mean_squared_error(ground_truth, predictions)
     # loss_mean = tf.reduce_mean(tf.squared_difference(ground_truth, predictions))
     
-    beta = 0.05
+    beta = 0.0005
     loss = tf.reduce_mean(loss_mse + beta * regularizer)
   
   tf.summary.scalar('loss_mse', loss_mse)

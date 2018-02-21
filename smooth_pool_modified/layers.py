@@ -20,6 +20,7 @@ def act(x):
 def weight_variable(shape):
 	"""Create a weight variable with appropriate initialization."""
 	initial = tf.truncated_normal(shape, stddev=0.1)
+	# initial = tf.constant(0.3, shape=shape)
 	return tf.Variable(initial)
 
 def bias_variable(shape):

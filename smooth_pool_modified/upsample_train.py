@@ -173,7 +173,7 @@ def pred(x_pred, x_coarse, vert_num, out_dir, indices, faces, t, predicts, X, ph
       y_mesh = tf.squeeze(tf.slice(pred_output, [i, 0, 0], [1, n, 9])).eval()
       y_mesh += x_coarse[i]
 
-      obj_out = sdir + '{0:05d}'.format(i) + '.obj'
+      obj_out = sdir + '{0:05d}'.format(i + 1) + '.obj'
       util.tri2obj(y_mesh, vert_num, indices, faces, obj_out) 
 
 
