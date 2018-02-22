@@ -115,7 +115,7 @@ def training(learning_rate, loss, global_step, lr_decay_rate):
     # tf.summary.scalar('grad_w_diff', tf.reduce_mean(grad_w_diff))
 
     gw = grad_W / W
-    tf.summary.scalar('gw', tf.reduce_mean(gw))
+    tf.summary.scalar('gw_mean', tf.reduce_mean(gw))
 
     # grads_and_vars is a list of tuples (gradient, variable).  Do whatever you
     # need to the 'gradient' part, for example cap them, etc.
@@ -151,15 +151,20 @@ def loss(ground_truth, predictions):
     regularizer = tf.nn.l2_loss(weights)
 
     loss_mse = tf.losses.mean_squared_error(ground_truth, predictions)
-    # loss_mean = tf.reduce_mean(tf.squared_difference(ground_truth, predictions))
+    loss_mean = tf.reduce_mean(tf.squared_difference(ground_truth, predictions))
+    loss_max = tf.reduce_max(tf.squared_difference(ground_truth, predictions))
     
-    beta = 0.0005
-    loss = tf.reduce_mean(loss_mse + beta * regularizer)
+    beta = 0.00001
+    loss = loss_mse + beta * regularizer
   
   tf.summary.scalar('loss_mse', loss_mse)
+  tf.summary.scalar('loss_max', loss_max)
+  tf.summary.scalar('loss_mean', loss_mean)
+  tf.summary.scalar('regularizer', regularizer)
+
   tf.summary.histogram('ground_truth', ground_truth)
   tf.summary.histogram('predictions', predictions)
 
-  return loss_mse
+  return loss
 
 

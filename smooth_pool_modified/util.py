@@ -92,7 +92,6 @@ def load_data(path_coarse, path_tracking, rest_pos, tdelta=True):
         y_list = []
         for i in range(len(batch_fine)):
             y_row = np.array(batch_fine[i]) - np.array(batch_coarse[i])
-            # y_row = np.array(batch_fine[i])
             y_list.append(y_row)
         y_train = np.array(y_list)
     else:
