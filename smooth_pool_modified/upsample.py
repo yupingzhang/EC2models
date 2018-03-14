@@ -31,8 +31,8 @@ from layers import smooth_layer
 from layers import densepool_layer
 
 
-
-def inference(input, batch_size, tri_num, vert_num, mtx, mtx_1, phase, keep_prob):
+# alpha: noise weight
+def inference(input, batch_size, tri_num, vert_num, mtx, mtx_1, phase, keep_prob, alpha):
     """Build the Upsamle model.
     Args:
       input: 
@@ -46,7 +46,7 @@ def inference(input, batch_size, tri_num, vert_num, mtx, mtx_1, phase, keep_prob
     # input_tensor32 = tf.cast(input_tensor, tf.float32)
 
     ## add noise
-    alpha = 0.01
+    # alpha = 0.01 
     noise_tensor = tf.random_normal([1292, 9], seed=1234)   #(1292, 9)
     input_add_noise = input + alpha * noise_tensor
     
@@ -109,7 +109,7 @@ def training(learning_rate, loss, global_step, lr_decay_rate):
     # print("grad_W0: ", grad_W0)    # tensor (700, 187)
     
     grad_W = [grad for grad, var in grads_and_vars][0]
-    print("grad_W: ", grad_W) 
+    # print("grad_W: ", grad_W) 
 
     # grad_w_diff = grad_W0 - grad_W
     # tf.summary.scalar('grad_w_diff', tf.reduce_mean(grad_w_diff))
@@ -139,10 +139,11 @@ def training(learning_rate, loss, global_step, lr_decay_rate):
 ##
 ## @param      ground_truth  The ground truth
 ## @param      predictions   The predictions
+## @param      beta          L2 weight
 ##
 ## @return     { description_of_the_return_value }
 ##
-def loss(ground_truth, predictions):
+def loss(ground_truth, predictions, beta):
   print("loss >>> ground_truth: ", ground_truth)
   print("         predictions: ", predictions)  # Tensor("Shape:0", shape=(3,), dtype=int32)
 
@@ -154,7 +155,7 @@ def loss(ground_truth, predictions):
     loss_mean = tf.reduce_mean(tf.squared_difference(ground_truth, predictions))
     loss_max = tf.reduce_max(tf.squared_difference(ground_truth, predictions))
     
-    beta = 0.00001
+    # beta = 0.00001
     loss = loss_mse + beta * regularizer
   
   tf.summary.scalar('loss_mse', loss_mse)

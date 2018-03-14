@@ -12,8 +12,7 @@ import util
 import preprocess
 from batch_conf import Dataset 
 
-# BATCH_SIZE = 50
-# BATCH_SIZE = 100
+
 BATCH_SIZE = 20
 FOLDER_SIZE = 100
 
@@ -37,7 +36,7 @@ FOLDER_SIZE = 100
 #
 # @return     { description_of_the_return_value }
 #
-def train_model(x_train, y_train, x_pred, x_coarse, rest_file, mtx, mtx_1, epochs, learning_rate, logdir, out_dir, init_w, lr_decay_rate, restore, alpha, beta):
+def train_model(data, x_pred, x_coarse, rest_file, mtx, mtx_1, mask, epochs, learning_rate, logdir, out_dir, init_w, lr_decay_rate, restore, alpha, beta):
   """Train upsample for a number of steps."""
   tf.reset_default_graph()
   # print("x_train.shape: ", x_train.shape) # (100, 700, 3)
@@ -45,22 +44,22 @@ def train_model(x_train, y_train, x_pred, x_coarse, rest_file, mtx, mtx_1, epoch
   batch_size = BATCH_SIZE
   folder_size = FOLDER_SIZE
 
-  tri_num = x_train.shape[1]
-  vert_num = len(mtx)
+  vert_num = data.shape[1]
   # print("train_model:  ", x_train.shape, y_train.shape)
   rest_pos = util.load_pos(rest_file)
   indices, faces = util.getfaces(rest_file)
   
-  X = tf.placeholder(tf.float32, shape=(None, x_train.shape[1], x_train.shape[2]), name="x_train")
-  Y = tf.placeholder(tf.float32, shape=(None, y_train.shape[1], y_train.shape[2]), name="y_train")
+  X = tf.placeholder(tf.float32, shape=(None, vert_num, 6), name="x_train")
+  Y = tf.placeholder(tf.float32, shape=(None, vert_num, 3), name="y_train")
+
   phase = tf.placeholder(tf.bool)
   keep_prob = tf.placeholder(tf.float32)
 
   # Build a Graph that computes the output from the model
-  predicts = upsample.inference(X, batch_size, tri_num, vert_num, mtx, mtx_1, phase, keep_prob, alpha)
+  predicts = upsample.inference(X, batch_size, vert_num, mtx, mtx_1, mask, phase, keep_prob)
 
   # Calculate loss
-  loss_op = upsample.loss(Y, predicts, beta)
+  loss_op = upsample.loss(Y, predicts, mask, alpha, beta)
 
   # Create a variable to track the global step.
   global_step = tf.Variable(0, name='global_step', trainable=False)
@@ -81,9 +80,7 @@ def train_model(x_train, y_train, x_pred, x_coarse, rest_file, mtx, mtx_1, epoch
   merged_summary = tf.summary.merge_all()
 
   # create batch data
-  # x = tf.train.batch(tf.convert_to_tensor(x_train), batch_size);
-  x = Dataset(x_train)
-  y = Dataset(y_train)
+  training_data = Dataset(data)
 
   # Start training
   # with tf.Session() as sess:
@@ -108,23 +105,50 @@ def train_model(x_train, y_train, x_pred, x_coarse, rest_file, mtx, mtx_1, epoch
   #   # w0.initializer.run()
   #   w0.load(u, session=sess)
   #   sess.run(w0)
+  
+  sc1_w0 = [v for v in tf.trainable_variables() if v.name == "sc1/weights:0"][0]
+  sc1_w0.load(mask, session=sess)
+  sess.run(sc1_w0)
+
+  # check batch data
+  # batch = training_data.next_batch(batch_size)
+  # print("batch.shape:  ", batch.shape)
+  # res_pos = util.load_pos(rest_file)
+  # for i in range(1,10):
+  #     x = batch[i,:,0:3]
+  #     y = batch[i,:,6:9]
+  #     x_coarse = np.squeeze(x) + res_pos
+  #     y_fine = np.squeeze(y) + x_coarse
+      
+  #     util.write_obj(res_pos, vert_num, faces, "rest.obj")
+  #     util.write_obj(x_coarse, vert_num, faces, "x_coarse_"+str(i)+".obj")
+  #     util.write_obj(y_fine, vert_num, faces, "y_fine_"+str(i)+".obj")
+
+
 
   # Fit all training data
   for epoch in range(epochs):
-      # sess.run(train_op, feed_dict={X: x_train, Y: y_train})
-      [t, lr] = sess.run(train_op, feed_dict={X: x.next_batch(batch_size), Y: y.next_batch(batch_size), phase: True, keep_prob: 0.6})
+      batch = training_data.next_batch(batch_size)
+
+      [t, lr] = sess.run(train_op, feed_dict={X: batch[:,:,0:6], Y: batch[:,:,6:9], phase: True, keep_prob: 0.6})
       # print("Epoch:", '%04d' % (epoch+1), "g = ", g)
 
       # Display logs per epoch step
       if (epoch+1) % display_step == 0:
           # [c, s] = sess.run([loss, merged_summary], feed_dict={X: x_train, Y:y_train})
-          [c, s] = sess.run([loss_op, merged_summary], feed_dict={X: x.next_batch(batch_size), Y: y.next_batch(batch_size), phase: False, keep_prob: 1.0})
+          [c, s] = sess.run([loss_op, merged_summary], feed_dict={X: batch[:,:,0:6], Y: batch[:,:,6:9], phase: False, keep_prob: 1.0})
           summary_writer.add_summary(s, epoch)
           print("Epoch:", '%04d' % (epoch+1), "learning_rate: ", lr, "loss = ", "{:.9f}".format(c))
+          # w = [v for v in tf.trainable_variables() if v.name == "sc1/weights/Variable:0"][0]
+          # print(sess.run(w))
  
       if (epoch+1) % pred_step == 0:
           t = int((epoch+1) / pred_step)
-          pred(x_pred, x_coarse, vert_num, out_dir, indices, faces, t, predicts, X, phase, keep_prob, sess)
+          # pred(x_pred, x_coarse, vert_num, out_dir, indices, faces, t, predicts, X, phase, keep_prob, sess)
+          pred_data = Dataset(x_pred)
+          pred_output = sess.run(predicts, feed_dict={ X:pred_data.next_folder(folder_size), phase: False, keep_prob: 1.0})
+          save_obj(pred_output, x_coarse, vert_num, out_dir, faces, t)
+ 
           print("Epoch:", '%04d' % (epoch+1), "predicting: ", '%03d' % t)
           print('Global_step: %s' % tf.train.global_step(sess, global_step))
           
@@ -154,27 +178,30 @@ def train_model(x_train, y_train, x_pred, x_coarse, rest_file, mtx, mtx_1, epoch
 #
 # @return     { description_of_the_return_value }
 #
-def pred(x_pred, x_coarse, vert_num, out_dir, indices, faces, t, predicts, X, phase, keep_prob, sess):
-  pred_input = Dataset(x_pred)
-  folder_size = x_pred.shape[0]
-  n = x_pred.shape[1]
+# def pred(x_pred, x_coarse, vert_num, out_dir, indices, faces, t, predicts, X, phase, keep_prob, sess):
+  # pred_input = Dataset(x_pred)
+  # folder_size = x_pred.shape[0]
+  # n = x_pred.shape[1]
   
-  pred_output = sess.run(predicts, feed_dict={ X:pred_input.next_folder(folder_size), phase: False, keep_prob: 1.0})
-  # print(pred_output.shape)
+  # pred_output = sess.run(predicts, feed_dict={ X:pred_input.next_folder(folder_size), phase: False, keep_prob: 1.0})
   
-  # save to new dir
-  sdir = out_dir + '{0:03d}'.format(t) + '/'
-  if not os.path.exists(sdir):
-    os.makedirs(sdir)
-  print("Save to >>> ", sdir)
 
-  for i in range(0, folder_size):
-      # print(tf.slice(pred_output, [i, 0, 0], [1, n, 9])).  #(1, 1292, 9)
-      y_mesh = tf.squeeze(tf.slice(pred_output, [i, 0, 0], [1, n, 9])).eval()
-      y_mesh += x_coarse[i]
 
-      obj_out = sdir + '{0:05d}'.format(i + 1) + '.obj'
-      util.tri2obj(y_mesh, vert_num, indices, faces, obj_out) 
+def save_obj(output, x_coarse, vert_num, out_dir, faces, t):
+    # save to new dir
+    sdir = out_dir + '{0:03d}'.format(t) + '/'
+    if not os.path.exists(sdir):
+      os.makedirs(sdir)
+    print("Save to >>> ", sdir)
+
+    for i in range(0, FOLDER_SIZE):
+        # print(tf.slice(pred_output, [i, 0, 0], [1, n, 9])).  #(1, 1292, 9)
+        # y_mesh = tf.squeeze(tf.slice(pred_output, [i, 0, 0], [1, n, 9])).eval()
+        y_mesh = tf.squeeze(tf.slice(output, [i, 0, 0], [1, vert_num, 3])).eval()
+        y_mesh += x_coarse[i]
+
+        obj_out = sdir + '{0:05d}'.format(i + 1) + '.obj'
+        util.write_obj(y_mesh, vert_num, faces, obj_out)
 
 
 def main():
@@ -232,7 +259,9 @@ def main():
 
   if args.train:    
       x_train = np.empty(0)
+      x_train_vel = np.empty(0)
       y_train = np.empty(0)
+
       x_test = np.empty(0)
       y_test = np.empty(0)
 
@@ -247,8 +276,11 @@ def main():
 
       sdir = coarseDir
       rest_file = sdir + [f for f in os.listdir(sdir) if not f.startswith('.')][0] + "/00001_00.obj"
+      
       dim, mtx, mtx_1 = preprocess.meshmtx_wnb(rest_file)
+
       rest_pos = util.load_pos(rest_file)
+      mask = preprocess.compute_mask(rest_pos)
 
       print("training dataset: ")
       print(">>>  " + str(coarseDir) + "  >>>  " + str(fineDir))
@@ -271,14 +303,13 @@ def main():
                   x_train = np.vstack((x_train, x))
                   y_train = np.vstack((y_train, y))  
 
+      data = np.concatenate((x_train, y_train), axis=2)
       print(time.clock() - t0, "seconds loading training data.")
-      if x_train.size == 0:
-          print("Error: no input training data.")
-          return 0
       
       # load data
       x_pred = np.empty(0)
       x_coarse = np.empty(0)
+      
       outDir = "pred/"
   # if args.pred:
       inDir = args.x
@@ -302,15 +333,15 @@ def main():
 
       print (time.clock() - t1, "seconds loading test data.")
   
-  max_count = 100
-  for learning_rate in [1E-1, 1E-2]:
+  max_count = 40
+  for learning_rate in [1E-2, 1E-3]:
       print('Starting run for learning_rate %f' % learning_rate)
+      # alpha = beta = 0.0001
       for count in range(max_count):
           # random sample
-          alpha = 10.0 ** np.random.uniform(-5, -1)
-          beta = 10.0 ** np.random.uniform(-3, -6)
-          logdir += str(learning_rate) + '_' +  str(alpha) + '_' + str(beta)
-          train_model(x_train, y_train, x_pred, x_coarse, rest_file, mtx, mtx_1, epochs, learning_rate, logdir, outDir, init_w, lr_decay_rate, restore, alpha, beta)
+          alpha = 10.0 ** np.random.uniform(-3, -5)
+          beta = 10.0 ** np.random.uniform(-1, -4)
+          train_model(data, x_pred, x_coarse, rest_file, mtx, mtx_1, mask, epochs, learning_rate, logdir, outDir, init_w, lr_decay_rate, restore, alpha, beta)
   
 
 if __name__ == "__main__":
