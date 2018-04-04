@@ -46,21 +46,9 @@ def inference(x_train, batch_size, vert_num, mask, phase, keep_prob):
     # input_tensor = tf.convert_to_tensor(tf.transpose(input, perm=[1, 0, 2]))    #(1292, batch_size, 9)
     # input_tensor32 = tf.cast(input_tensor, tf.float32)
 
-    ## add noise
-    # alpha = 0.01 
-    # noise_tensor = tf.random_normal([1292, 9], seed=1234)   #(1292, 9)
-    # input_add_noise = input + alpha * noise_tensor
-    # input_tensor = tf.convert_to_tensor(tf.transpose(input_add_noise, perm=[1, 0, 2]))    #(1292, batch_size, 9)
-    # input_tensor = tf.convert_to_tensor(tf.transpose(input, perm=[1, 0, 2]))    #(1292, batch_size, 9)
-
-
     xpos_tensor32 = tf.cast(x_train[:, :, 0:3], tf.float32)  # (?, 700, 3)
     xvel_tensor32 = tf.cast(x_train[:, :, 3:6], tf.float32)  # (?, 700, 3)
     # print(xvel_tensor32.shape)       # ==> TensorShape([Dimension(2), Dimension(3)])
-
-    # mtx_tensor = tf.convert_to_tensor(mtx, dtype='float32', name='mtx_tensor')
-    # mtx_1_tensor = tf.transpose(tf.convert_to_tensor(mtx_1, dtype='float32', name='mtx_1_tensor'))
-
     ##
     ## { position branch }
     ##
@@ -74,9 +62,9 @@ def inference(x_train, batch_size, vert_num, mask, phase, keep_prob):
     dim = xvel_tensor32.shape.as_list()
     vel_addon = elem_fc_layer(xvel_tensor32, dim[1], name="elem_fc")  # (100, 700, 3)
 
-    return sc1
-    # out = sc1 + vel_addon
-    # return out
+    # return sc1
+    out = sc1 + 0.1 * vel_addon
+    return out
 
 
 def training(learning_rate, loss, global_step, lr_decay_rate):

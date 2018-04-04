@@ -426,7 +426,7 @@ def compute_mask(num_v, dist):
         rs = np.sum(masking[x, :])  # sum of the row
         # print("sum of row ", x, " >>> ", rs)
         masking[x, :] /= rs
-
+    
     return masking
 
 
